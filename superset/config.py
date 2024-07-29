@@ -39,7 +39,7 @@ from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 import pkg_resources
 from celery.schedules import crontab
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
+from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH
 from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
@@ -169,16 +169,33 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+from superset.security import SupersetSecurityManager
+from flask import g
+# Create a custom security manager to bypass authentication
+from flask_appbuilder.security.manager import BaseSecurityManager
+
+class NoAuthSecurityManager(BaseSecurityManager):
+    def auth_user_oauth(self, userinfo):
+        user = self.find_user(username='admin')
+        return user
+
+# Set the custom security manager
+CUSTOM_SECURITY_MANAGER = NoAuthSecurityManager
+
+
+# Set the authentication type to OAUTH
+AUTH_TYPE = AUTH_REMOTE_USER
+
 # ---------------------------------------------------------
 
 # Your App secret key. Make sure you override it on superset_config.py
 # or use `SUPERSET_SECRET_KEY` environment variable.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
-
+# SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
+SECRET_KEY = 'testtestasdasdasdasd'
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = (
     f"""sqlite:///{os.path.join(DATA_DIR, "superset.db")}?check_same_thread=false"""
@@ -235,7 +252,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
+WTF_CSRF_ENABLED = False
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
@@ -310,7 +327,7 @@ FAB_API_SWAGGER_UI = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+# AUTH_TYPE = AUTH_DB
 
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
@@ -319,10 +336,10 @@ AUTH_TYPE = AUTH_DB
 # AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
-# AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = True
 
 # The default user self registration role
-# AUTH_USER_REGISTRATION_ROLE = "Public"
+AUTH_USER_REGISTRATION_ROLE = "Admin"
 
 # When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
@@ -338,8 +355,8 @@ AUTH_TYPE = AUTH_DB
 # Grant public role the same set of permissions as for a selected builtin role.
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
-PUBLIC_ROLE_LIKE: str | None = None
-
+PUBLIC_ROLE_LIKE = "Gamma"
+PUBLIC_ROLE_LIKE_GAMMA = True
 # ---------------------------------------------------
 # Babel config for translations
 # ---------------------------------------------------
@@ -1396,7 +1413,8 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+# TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
@@ -1708,3 +1726,5 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+
